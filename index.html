@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#0d0f11}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#2a3036;border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#3a424a}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes flowdash{to{stroke-dashoffset:-14}}
+  @keyframes softpulse{0%,100%{opacity:.4}50%{opacity:.95}}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;height:100vh;width:100%;background:#0d0f11;color:#e7e9eb;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:13px;overflow:hidden">
+
+  <!-- ===================== HEADER ===================== -->
+  <div style="flex:none;display:flex;align-items:center;gap:18px;height:50px;padding:0 16px;border-bottom:1px solid #2a3036;background:#101316">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:9px;height:9px;border-radius:2px;background:#6fb1bd"></div>
+      <div style="font-weight:650;letter-spacing:.3px">AES50 Routing Inspector</div>
+      <div style="font-size:10.5px;color:#646b72;font-family:ui-monospace,'SF Mono',Menlo,monospace;border:1px solid #2a3036;padding:1px 6px;border-radius:3px">X32 / M32 · .scn</div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="position:relative">
+      <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search name · port · STG1 …" style="width:230px;height:30px;background:#15181b;border:1px solid #2a3036;border-radius:6px;color:#e7e9eb;padding:0 10px;font-size:12.5px;outline:none;font-family:ui-monospace,Menlo,monospace" style-focus="border-color:#6fb1bd"/>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;font-size:11px">
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#cf6a64"></span><span style="color:#9aa1a8">{{ errCount }} errors</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#c69a52"></span><span style="color:#9aa1a8">{{ warnCount }} warnings</span></div>
+    </div>
+  </div>
+
+  <!-- ===================== TOPOLOGY RIBBON ===================== -->
+  <div style="flex:none;display:flex;align-items:center;gap:10px;height:38px;padding:0 16px;border-bottom:1px solid #1c2125;background:#0e1114;font-size:11px;color:#8b9299;font-family:ui-monospace,Menlo,monospace">
+    <span style="color:#646b72">SIGNAL TOPOLOGY</span>
+    <span style="color:#3a424a">│</span>
+    <span style="padding:2px 8px;border:1px solid #2a3036;border-radius:4px;background:#15181b">STAGE BOX</span>
+    <span style="color:#5c656d">──AES50&#8209;A in──▸</span>
+    <span style="padding:2px 8px;border:1px solid #34506b;border-radius:4px;background:#13202b;color:#9fc6d6">MONITOR&nbsp;<span style="color:#6a7178">(owns preamps)</span></span>
+    <span style="color:#5c656d">─B&nbsp;out→A&nbsp;in passthrough─▸</span>
+    <span style="padding:2px 5px;border:1px dashed #3a444c;border-radius:4px;color:#7d8a93">AES50 CABLE</span>
+    <span style="color:#5c656d">──▸</span>
+    <span style="padding:2px 8px;border:1px solid #5a4a34;border-radius:4px;background:#221b13;color:#d6c19f">FOH</span>
+    <div style="flex:1"></div>
+    <span style="color:#646b72">click a channel to trace · select an issue to jump</span>
+  </div>
+
+  <!-- ===================== MAIN ===================== -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- BOARD (mirrored stacks + connectors) -->
+    <div ref="{{ setBoardRef }}" style="flex:1;overflow:auto;min-width:0;background:#0d0f11;position:relative">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#646b72;font-family:ui-monospace,Menlo,monospace;font-size:12px">parsing scenes &amp; resolving AES50 flow…</div>
+      </sc-if>
+      <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#cf6a64;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:20px;text-align:center">{{ error }}</div>
+      </sc-if>
+
+      <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+      <div style="min-width:700px;padding:14px 24px 60px">
+        <!-- column headers -->
+        <div style="display:flex;align-items:flex-end;margin-bottom:8px">
+          <div style="width:268px;display:flex;align-items:center;justify-content:space-between;padding-right:10px">
+            <div>
+              <div style="font-size:10px;letter-spacing:1px;color:#6a7178;font-weight:600">MONITOR · X32</div>
+              <div style="font-size:12px;color:#9fc6d6;font-family:ui-monospace,Menlo,monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ monName }}</div>
+            </div>
+            <button onClick="{{ swapMon }}" style="font-size:10px;color:#8b9299;background:#15181b;border:1px solid #2a3036;border-radius:4px;padding:4px 8px;cursor:pointer;font-family:ui-monospace,Menlo,monospace" style-hover="border-color:#6fb1bd;color:#cfe3e9">Upload .scn</button>
+          </div>
+          <div style="width:116px;text-align:center;font-size:9.5px;letter-spacing:1px;color:#4a525a">AES50 LINK</div>
+          <div style="width:268px;display:flex;align-items:center;justify-content:space-between;padding-left:10px">
+            <button onClick="{{ swapFoh }}" style="font-size:10px;color:#8b9299;background:#15181b;border:1px solid #2a3036;border-radius:4px;padding:4px 8px;cursor:pointer;font-family:ui-monospace,Menlo,monospace" style-hover="border-color:#c69a52;color:#e6d3ad">Upload .scn</button>
+            <div style="text-align:right">
+              <div style="font-size:10px;letter-spacing:1px;color:#6a7178;font-weight:600">FOH · M32</div>
+              <div style="font-size:12px;color:#d6c19f;font-family:ui-monospace,Menlo,monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fohName }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- rows + svg overlay -->
+        <div style="position:relative">
+          <svg width="{{ svgW }}" height="{{ svgH }}" viewBox="{{ svgViewBox }}" style="position:absolute;top:0;left:0;pointer-events:none;overflow:visible;z-index:5">
+            <line x1="{{ centerX }}" y1="0" x2="{{ centerX }}" y2="{{ svgH }}" stroke="#1c2227" stroke-width="1"></line>
+            <sc-for list="{{ connectors }}" as="c" hint-placeholder-count="0">
+              <path d="{{ c.d }}" fill="none" stroke="{{ c.stroke }}" stroke-width="{{ c.width }}" stroke-dasharray="{{ c.dash }}" opacity="{{ c.opacity }}" style="{{ c.style }}"></path>
+            </sc-for>
+            <sc-for list="{{ connDots }}" as="d" hint-placeholder-count="0">
+              <circle cx="{{ d.x }}" cy="{{ d.y }}" r="{{ d.r }}" fill="{{ d.fill }}" stroke="{{ d.stroke }}" stroke-width="1.5" style="{{ d.style }}"></circle>
+            </sc-for>
+          </svg>
+
+          <div style="display:flex;position:relative;z-index:2">
+            <!-- MONITOR COLUMN -->
+            <div style="width:268px">
+              <sc-for list="{{ monRows }}" as="r" hint-placeholder-count="20">
+                <div onClick="{{ r.select }}" style="height:34px;display:flex;align-items:center;gap:7px;padding:0 9px 0 7px;border-bottom:1px solid #16191c;cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:#1b2024">
+                  <span style="width:20px;text-align:right;font-size:10.5px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
+                  <span style="width:3px;height:18px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
+                  <span style="flex:1;font-size:12.5px;color:{{ r.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                  <span style="font-size:10px;color:#9aa1a8;font-family:ui-monospace,Menlo,monospace">{{ r.destText }}</span>
+                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:3px;padding:1px 5px;min-width:42px;text-align:center">{{ r.originShort }}</span>
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
+                </div>
+              </sc-for>
+            </div>
+            <!-- CENTER -->
+            <div style="width:116px;position:relative"></div>
+            <!-- FOH COLUMN -->
+            <div style="width:268px">
+              <sc-for list="{{ fohRows }}" as="r" hint-placeholder-count="20">
+                <div onClick="{{ r.select }}" style="height:34px;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;padding:0 7px 0 9px;border-bottom:1px solid #16191c;cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:#1b2024">
+                  <span style="width:20px;text-align:left;font-size:10.5px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
+                  <span style="width:3px;height:18px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
+                  <span style="flex:1;text-align:right;font-size:12.5px;color:{{ r.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                  <span style="font-size:10px;color:#9aa1a8;font-family:ui-monospace,Menlo,monospace">{{ r.destText }}</span>
+                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:3px;padding:1px 5px;min-width:42px;text-align:center">{{ r.originShort }}</span>
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <!-- ===================== DOCK ===================== -->
+    <div style="flex:none;width:360px;border-left:1px solid #2a3036;background:#101316;display:flex;flex-direction:column;min-height:0">
+      <!-- tabs -->
+      <div style="flex:none;display:flex;height:40px;border-bottom:1px solid #2a3036">
+        <div onClick="{{ tabIssues }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabIssuesColor }};border-bottom:2px solid {{ tabIssuesBar }}">Issues <span style="font-size:10px;color:#646b72;font-family:ui-monospace,Menlo,monospace">{{ issueTotal }}</span></div>
+        <div onClick="{{ tabLinks }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabLinksColor }};border-bottom:2px solid {{ tabLinksBar }}">Link Check</div>
+        <div onClick="{{ tabDetail }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabDetailColor }};border-bottom:2px solid {{ tabDetailBar }}">Channel</div>
+      </div>
+
+      <!-- ISSUES -->
+      <sc-if value="{{ showIssues }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:none;display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #1c2125;flex-wrap:wrap">
+          <sc-for list="{{ sevChips }}" as="s" hint-placeholder-count="4">
+            <div onClick="{{ s.click }}" style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;cursor:pointer;padding:3px 9px;border-radius:4px;border:1px solid {{ s.border }};color:{{ s.color }};background:{{ s.bg }}">{{ s.label }}</div>
+          </sc-for>
+        </div>
+        <div style="flex:1;overflow:auto;padding:8px 10px">
+          <sc-for list="{{ issuesFiltered }}" as="i" hint-placeholder-count="6">
+            <div onClick="{{ i.click }}" style="border:1px solid {{ i.border }};border-left:3px solid {{ i.accent }};border-radius:6px;background:#13171a;padding:9px 11px;margin-bottom:7px;cursor:pointer" style-hover="background:#181d21">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+                <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ i.accent }};border:1px solid {{ i.border }};border-radius:3px;padding:0 4px">{{ i.sideTag }}</span>
+                <span style="font-size:12px;font-weight:600;color:#dfe3e6;line-height:1.3">{{ i.title }}</span>
+              </div>
+              <div style="font-size:11px;color:#828990;line-height:1.45">{{ i.detail }}</div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noIssues }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align:center;color:#5c656d;font-size:12px;padding:30px;font-family:ui-monospace,Menlo,monospace">no issues at this filter</div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- LINK CHECK -->
+      <sc-if value="{{ showLinks }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:12px">
+          <div style="font-size:11px;color:#828990;line-height:1.5;margin-bottom:12px">Names differ between desks all the time. Pick the channel each console <em style="color:#aab1b8;font-style:normal">thinks</em> is the same instrument — the inspector confirms whether they're actually the same physical input across AES50.</div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <div style="flex:1">
+              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:4px">MONITOR CH</div>
+              <select onChange="{{ pickMonChange }}" value="{{ pickMon }}" style="width:100%;height:32px;background:#15181b;border:1px solid #2a3036;border-radius:5px;color:#e7e9eb;font-size:12px;padding:0 6px;font-family:ui-monospace,Menlo,monospace;outline:none">
+                <option value="">— select —</option>
+                <sc-for list="{{ monOptions }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+              </select>
+            </div>
+            <div style="color:#4a525a;font-size:18px;padding-top:16px">⇄</div>
+            <div style="flex:1">
+              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:4px;text-align:right">FOH CH</div>
+              <select onChange="{{ pickFohChange }}" value="{{ pickFoh }}" style="width:100%;height:32px;background:#15181b;border:1px solid #2a3036;border-radius:5px;color:#e7e9eb;font-size:12px;padding:0 6px;font-family:ui-monospace,Menlo,monospace;outline:none">
+                <option value="">— select —</option>
+                <sc-for list="{{ fohOptions }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+              </select>
+            </div>
+          </div>
+
+          <sc-if value="{{ pickResult }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px solid {{ prBorder }};border-radius:7px;background:#13171a;padding:12px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="width:10px;height:10px;border-radius:50%;background:{{ prColor }}"></span>
+                <span style="font-size:13px;font-weight:650;color:{{ prColor }}">{{ prStatus }}</span>
+              </div>
+              <div style="font-size:11.5px;color:#aab1b8;line-height:1.5;margin-bottom:10px">{{ prMsg }}</div>
+              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:6px">{{ prPathLabel }}</div>
+              <sc-for list="{{ prPath }}" as="p" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                  <span style="width:54px;font-size:8.5px;letter-spacing:.5px;color:#5c656d;text-align:right;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ p.layer }}</span>
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ p.dot }};flex:none"></span>
+                  <span style="font-size:11.5px;color:#cdd2d6;font-family:ui-monospace,Menlo,monospace">{{ p.label }}</span>
+                </div>
+              </sc-for>
+              <button onClick="{{ addLink }}" style="margin-top:11px;width:100%;height:30px;background:#1a2228;border:1px solid #34506b;border-radius:5px;color:#9fc6d6;font-size:12px;cursor:pointer;font-weight:550" style-hover="background:#1f2b33">＋ Pin this link</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ hasSuggest }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin:4px 0 7px">SUGGESTED LINKS · same input, different name</div>
+            <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="0">
+              <div style="display:flex;align-items:center;gap:8px;border:1px solid #1f2429;border-radius:6px;background:#121619;padding:7px 9px;margin-bottom:6px">
+                <span style="flex:1;font-size:11px;color:#9fc6d6;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.monName }}</span>
+                <span style="font-size:9px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ s.port }}</span>
+                <span style="flex:1;font-size:11px;color:#d6c19f;text-align:right;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.fohName }}</span>
+                <button onClick="{{ s.accept }}" style="font-size:10px;color:#8b9299;background:#181c20;border:1px solid #2a3036;border-radius:4px;padding:3px 7px;cursor:pointer" style-hover="border-color:#6fb1bd;color:#cfe3e9">link</button>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <sc-if value="{{ hasLinks }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin:14px 0 7px">PINNED LINKS</div>
+            <sc-for list="{{ pinnedLinks }}" as="l" hint-placeholder-count="0">
+              <div onClick="{{ l.focus }}" style="display:flex;align-items:center;gap:8px;border:1px solid {{ l.border }};border-left:3px solid {{ l.accent }};border-radius:6px;background:#121619;padding:7px 9px;margin-bottom:6px;cursor:pointer">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ l.accent }};flex:none"></span>
+                <span style="flex:1;font-size:11px;color:#cdd2d6;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.text }}</span>
+                <button onClick="{{ l.remove }}" style="font-size:13px;color:#646b72;background:none;border:none;cursor:pointer;line-height:1" style-hover="color:#cf6a64">×</button>
+              </div>
+            </sc-for>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- CHANNEL DETAIL -->
+      <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:14px">
+          <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px">
+              <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ dSideColor }};border:1px solid {{ dSideBorder }};border-radius:3px;padding:1px 5px">{{ dSide }}</span>
+              <span style="width:4px;height:18px;border-radius:2px;background:{{ dColor }}"></span>
+              <span style="font-size:16px;font-weight:650">{{ dName }}</span>
+              <span style="font-size:11px;color:#646b72;font-family:ui-monospace,Menlo,monospace">Ch {{ dId }}</span>
+            </div>
+            <div style="font-size:11px;color:#828990;margin-bottom:16px;font-family:ui-monospace,Menlo,monospace">resolves to <span style="color:{{ dColor2 }}">{{ dOrigin }}</span></div>
+
+            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:9px">SIGNAL PATH</div>
+            <div style="position:relative;margin-bottom:18px">
+              <sc-for list="{{ dSteps }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex;gap:11px;align-items:flex-start;padding-bottom:13px;position:relative">
+                  <div style="width:11px;display:flex;flex-direction:column;align-items:center;flex:none">
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:2px solid #101316;z-index:2"></span>
+                    <span style="width:1px;flex:1;background:#262c31;margin-top:1px;min-height:14px"></span>
+                  </div>
+                  <div style="flex:1;margin-top:-2px">
+                    <div style="font-size:8.5px;letter-spacing:.6px;color:#5c656d;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ s.layer }}</div>
+                    <div style="font-size:12.5px;color:#dfe3e6;font-family:ui-monospace,Menlo,monospace">{{ s.label }}</div>
+                    <div style="font-size:10.5px;color:#727980;line-height:1.4;margin-top:1px">{{ s.detail }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">SENDS TO</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px">
+              <sc-for list="{{ dDests }}" as="x" hint-placeholder-count="3">
+                <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#aab1b8;border:1px solid #2a3036;border-radius:4px;padding:2px 7px;background:#15181b">{{ x.label }}</span>
+              </sc-for>
+              <sc-if value="{{ dNoDest }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#cf6a64;font-family:ui-monospace,Menlo,monospace">unassigned — goes nowhere</span></sc-if>
+            </div>
+
+            <sc-if value="{{ dHasMatch }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">{{ dMatchLabel }}</div>
+              <sc-for list="{{ dMatches }}" as="m" hint-placeholder-count="0">
+                <div onClick="{{ m.select }}" style="display:flex;align-items:center;gap:8px;border:1px solid {{ m.border }};border-radius:6px;background:#121619;padding:8px 10px;margin-bottom:6px;cursor:pointer" style-hover="background:#181d21">
+                  <span style="width:7px;height:7px;border-radius:50%;background:{{ m.accent }}"></span>
+                  <span style="flex:1;font-size:12px;color:#cdd2d6">{{ m.name }}</span>
+                  <span style="font-size:10px;color:{{ m.accent }};font-family:ui-monospace,Menlo,monospace">{{ m.verdict }}</span>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ dDeadEnd }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">CROSS-DESK</div>
+              <div style="border:1px solid #2a3036;border-left:3px solid #7d8a93;border-radius:6px;background:#13171a;padding:10px 12px;font-size:11.5px;color:#9aa1a8;line-height:1.5">{{ dDeadEndMsg }}</div>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{ noDetail }}" hint-placeholder-val="{{ true }}">
+            <div style="text-align:center;color:#5c656d;font-size:12px;padding:40px 20px;font-family:ui-monospace,Menlo,monospace;line-height:1.6">select a channel<br/>to trace its path</div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <input ref="{{ setMonInput }}" type="file" accept=".scn" onChange="{{ onMonFile }}" style="display:none"/>
+  <input ref="{{ setFohInput }}" type="file" accept=".scn" onChange="{{ onFohFile }}" style="display:none"/>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    ready: false, loading: true, error: null,
+    monText: null, fohText: null, monName: '', fohName: '',
+    mon: null, foh: null, analysis: null, monVM: [], fohVM: [],
+    monPos: {}, fohPos: {},
+    dock: 'issues', search: '', sevFilter: 'all',
+    selected: null, links: [], pickMon: '', pickFoh: '',
+  };
+
+  ROW_H = 34; COL_W = 268; CENTER_W = 116;
+
+  async componentDidMount() {
+    try {
+      const base = location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1);
+      const txt = await (await fetch(base + 'scenes/scn.js')).text();
+      this.M = new Function(txt.replace(/export function/g, 'function') +
+        '\nreturn {parseScene,analyzeLink,channelFlow,canonicalOrigin,resolveSlot,resolveAesSend,channelDestinations};')();
+      const fohText = await (await fetch(base + 'scenes/M32_FIX.scn')).text();
+      const monText = await (await fetch(base + 'scenes/2024_CASSETTE_BAND_X32.scn')).text();
+      this.ingest(monText, 'CASSETTE_BAND · X32', fohText, 'M32_FIX · M32');
+    } catch (e) { this.setState({ error: 'Load error: ' + (e && e.message || e), loading: false }); }
+  }
+
+  ingest(monText, monName, fohText, fohName) {
+    const mon = this.M.parseScene(monText, monName);
+    const foh = this.M.parseScene(fohText, fohName);
+    const analysis = this.M.analyzeLink(mon, foh);
+    // severity per channel
+    const sev = { MON: {}, FOH: {} };
+    const rank = { error: 3, warn: 2, info: 1 };
+    const bump = (side, idx, s) => { const c = sev[side][idx]; if (!c || rank[s] > rank[c]) sev[side][idx] = s; };
+    for (const i of analysis.issues) { if (i.side && i.ref) bump(i.side, i.ref, i.sev); }
+    for (const n of analysis.nameMismatch) { bump('MON', n.monRef, 'info'); bump('FOH', n.fohRef, 'info'); }
+    const monVM = this.buildVM('MON', mon, foh, analysis, sev.MON);
+    const fohVM = this.buildVM('FOH', foh, mon, analysis, sev.FOH);
+    const monPos = {}, fohPos = {};
+    monVM.forEach((r, i) => monPos[r.idx] = i);
+    fohVM.forEach((r, i) => fohPos[r.idx] = i);
+    this.setState({
+      ready: true, loading: false, error: null,
+      monText, fohText, monName, fohName, mon, foh, analysis, monVM, fohVM, monPos, fohPos,
+      selected: null, links: [], pickMon: '', pickFoh: '',
+    });
+  }
+
+  buildVM(side, con, partner, analysis, sevMap) {
+    const link = side === 'MON' ? { mon: con, foh: partner } : { mon: partner, foh: con };
+    const co = this.M.canonicalOrigin(side, con, link);
+    return con.channels.map((ch) => {
+      const o = co(ch);
+      const dests = this.M.channelDestinations(ch);
+      const busN = dests.filter((d) => d.type === 'Bus').length;
+      const lr = dests.some((d) => d.type === 'LR');
+      let destText = '';
+      if (lr) destText += 'LR';
+      if (busN) destText += (lr ? ' ' : '') + '·' + busN;
+      if (!destText) destText = '—';
+      const flow = this.M.channelFlow(side, con, link, ch);
+      const s = sevMap[ch.idx] || null;
+      return {
+        idx: ch.idx, id: ch.id, side,
+        name: ch.name && ch.name.trim() ? ch.name : '(unused)',
+        named: !!(ch.name && ch.name.trim()),
+        colorHex: this.colorFor(ch.color),
+        key: o.key, kind: o.kind, originLabel: o.label, originShort: o.short,
+        linkPort: o.linkPort || null, monSendTok: o.monSend ? o.monSend.tok : null,
+        destText, busN, lr, muted: ch.muted, sev: s, steps: flow.steps,
+        blob: (ch.id + ' ' + (ch.name || '') + ' ' + o.short + ' ' + o.label + ' ' + o.key).toLowerCase(),
+      };
+    });
+  }
+
+  colorFor(code) {
+    const c = (code || '').replace(/i$/, '');
+    return ({ RD: '#b25a5a', GN: '#5f9e6e', YE: '#b2a052', BL: '#5a7fb2', MG: '#9f5fa0', CY: '#5aa0a8', WH: '#aab1b8', OFF: '#3a424a' })[c] || '#4a525a';
+  }
+  sevColor(s) { return ({ error: '#cf6a64', warn: '#c69a52', info: '#7d8a93' })[s] || '#2a3036'; }
+  kindColor(k) { return k === 'Stage' ? '#6fb1bd' : (k === 'MonLocal' || k === 'MonCard') ? '#c69a52' : (k === 'FohLocal') ? '#646b72' : '#7d8a93'; }
+  layerDot(l) { return ({ origin: '#6fb1bd', aes: '#5a7fb2', link: '#c69a52', patch: '#7d8a93', channel: '#aab1b8' })[l] || '#5c656d'; }
+
+  // geometry
+  yMon(idx) { const p = this.state.monPos[idx]; return p == null ? null : p * this.ROW_H + this.ROW_H / 2; }
+  yFoh(idx) { const p = this.state.fohPos[idx]; return p == null ? null : p * this.ROW_H + this.ROW_H / 2; }
+  path(yA, yB) { const x1 = this.COL_W, x2 = this.COL_W + this.CENTER_W, cx = x1 + this.CENTER_W / 2; return `M ${x1} ${yA} C ${cx} ${yA}, ${cx} ${yB}, ${x2} ${yB}`; }
+
+  // verdict for a cross-desk pair sharing canonical key
+  verdict(key) {
+    if (key.startsWith('STAGE:')) return { status: 'valid', color: '#6fb1bd', word: 'stage · verified' };
+    if (key.startsWith('MONLOCAL:') || key.startsWith('MONCARD:')) return { status: 'valid', color: '#6fb1bd', word: 'mon local · ok' };
+    return { status: 'valid', color: '#7d8a93', word: 'linked' };
+  }
+
+  select(side, idx) { this.setState({ selected: { side, idx }, dock: 'detail' }); this.scrollTo(side, idx); }
+  scrollTo(side, idx) {
+    const p = side === 'MON' ? this.state.monPos[idx] : this.state.fohPos[idx];
+    if (p == null || !this.board) return;
+    const y = 60 + p * this.ROW_H;
+    const top = y - this.board.clientHeight / 2;
+    this.board.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  }
+
+  matchesOf(side, idx) {
+    const a = this.state.analysis; if (!a) return [];
+    const vm = side === 'MON' ? this.state.monVM : this.state.fohVM;
+    const row = vm.find((r) => r.idx === idx); if (!row) return [];
+    const otherByKey = side === 'MON' ? a.fohByKey : a.monByKey;
+    const list = otherByKey.get(row.key) || [];
+    return list.map((x) => x.ch.idx);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const base = {
+      ready: st.ready, loading: st.loading, error: st.error,
+      monName: st.monName, fohName: st.fohName, search: st.search,
+      onSearch: (e) => this.setState({ search: e.target.value }),
+      setBoardRef: (el) => { this.board = el; },
+      setMonInput: (el) => { this.monInput = el; }, setFohInput: (el) => { this.fohInput = el; },
+      swapMon: () => this.monInput && this.monInput.click(),
+      swapFoh: () => this.fohInput && this.fohInput.click(),
+      onMonFile: async (e) => { const f = e.target.files[0]; if (f) this.ingest(await f.text(), f.name.replace(/\.scn$/i, '') + ' · X32', st.fohText, st.fohName); },
+      onFohFile: async (e) => { const f = e.target.files[0]; if (f) this.ingest(st.monText, st.monName, await f.text(), f.name.replace(/\.scn$/i, '') + ' · M32'); },
+      tabIssues: () => this.setState({ dock: 'issues' }),
+      tabLinks: () => this.setState({ dock: 'links' }),
+      tabDetail: () => this.setState({ dock: 'detail' }),
+      showIssues: st.dock === 'issues', showLinks: st.dock === 'links', showDetail: st.dock === 'detail',
+      tabIssuesColor: st.dock === 'issues' ? '#e7e9eb' : '#6a7178', tabIssuesBar: st.dock === 'issues' ? '#6fb1bd' : 'transparent',
+      tabLinksColor: st.dock === 'links' ? '#e7e9eb' : '#6a7178', tabLinksBar: st.dock === 'links' ? '#6fb1bd' : 'transparent',
+      tabDetailColor: st.dock === 'detail' ? '#e7e9eb' : '#6a7178', tabDetailBar: st.dock === 'detail' ? '#6fb1bd' : 'transparent',
+    };
+    if (!st.ready) return Object.assign(base, { monRows: [], fohRows: [], connectors: [], connDots: [], issuesFiltered: [], sevChips: [], issueTotal: 0, errCount: 0, warnCount: 0, monOptions: [], fohOptions: [] });
+
+    const a = st.analysis;
+    const q = st.search.trim().toLowerCase();
+    const sel = st.selected;
+
+    const mkRow = (r, side) => {
+      const selHere = sel && sel.side === side && sel.idx === r.idx;
+      const isMatch = sel && this.activeMatch && this.activeMatch[side] && this.activeMatch[side].has(r.idx);
+      return Object.assign({}, r, {
+        name: r.name,
+        nameColor: r.named ? (selHere ? '#fff' : '#dfe3e6') : '#4a525a',
+        colorHex: r.colorHex,
+        destText: r.destText,
+        originShort: r.originShort,
+        originLabel: r.originLabel,
+        chipColor: this.kindColor(r.kind),
+        chipBg: r.kind === 'Stage' ? '#11242b' : 'transparent',
+        chipBorder: r.kind === 'Stage' ? '#2c4d57' : '#262c31',
+        dot: r.sev ? this.sevColor(r.sev) : 'transparent',
+        dim: q && !r.blob.includes(q) ? '0.28' : '1',
+        bg: selHere ? '#1d262b' : (isMatch ? '#171f23' : 'transparent'),
+        select: () => this.select(side, r.idx),
+      });
+    };
+
+    // active matches set (for row highlight) based on selection
+    this.activeMatch = { MON: new Set(), FOH: new Set() };
+    const connectors = []; const connDots = [];
+    const pushConn = (yM, yF, color, opacity, anim) => {
+      if (yM == null || yF == null) return;
+      connectors.push({ d: this.path(yM, yF), stroke: color, width: anim ? 2.2 : 1.6, dash: anim ? '7 6' : '0', opacity: String(opacity), style: anim ? 'animation:flowdash .55s linear infinite' : '' });
+    };
+
+    // pinned links (persistent faint)
+    for (const l of st.links) {
+      const yM = this.yMon(l.monIdx), yF = this.yFoh(l.fohIdx);
+      pushConn(yM, yF, l.color, 0.5, false);
+    }
+
+    // selection-driven connectors
+    if (sel) {
+      const vm = sel.side === 'MON' ? st.monVM : st.fohVM;
+      const row = vm.find((r) => r.idx === sel.idx);
+      if (row) {
+        const matchIdx = this.matchesOf(sel.side, sel.idx);
+        const v = this.verdict(row.key);
+        if (matchIdx.length) {
+          for (const mi of matchIdx) {
+            const yM = sel.side === 'MON' ? this.yMon(sel.idx) : this.yMon(mi);
+            const yF = sel.side === 'MON' ? this.yFoh(mi) : this.yFoh(sel.idx);
+            pushConn(yM, yF, v.color, 0.95, true);
+            if (sel.side === 'MON') this.activeMatch.FOH.add(mi); else this.activeMatch.MON.add(mi);
+          }
+        } else {
+          // dead end: draw stub to center with red dot
+          const y = sel.side === 'MON' ? this.yMon(sel.idx) : this.yFoh(sel.idx);
+          const cx = this.COL_W + this.CENTER_W / 2;
+          const x1 = sel.side === 'MON' ? this.COL_W : this.COL_W + this.CENTER_W;
+          if (y != null) {
+            connectors.push({ d: `M ${x1} ${y} L ${cx} ${y}`, stroke: '#cf6a64', width: 2.2, dash: '7 6', opacity: '0.95', style: 'animation:flowdash .55s linear infinite' });
+            connDots.push({ x: cx, y, r: 5, fill: '#1a1213', stroke: '#cf6a64', style: 'animation:softpulse 1.4s ease-in-out infinite' });
+          }
+        }
+      }
+    }
+
+    const monRows = st.monVM.map((r) => mkRow(r, 'MON'));
+    const fohRows = st.fohVM.map((r) => mkRow(r, 'FOH'));
+    const maxRows = Math.max(st.monVM.length, st.fohVM.length);
+    const svgH = maxRows * this.ROW_H;
+    const svgW = this.COL_W * 2 + this.CENTER_W;
+
+    // issues
+    const errCount = a.issues.filter((i) => i.sev === 'error').length;
+    const warnCount = a.issues.filter((i) => i.sev === 'warn').length;
+    const infoCount = a.nameMismatch.length;
+    const allIssues = a.issues.concat(a.nameMismatch.map((n) => ({ ...n, side: '', sev: 'info' })));
+    const filtered = allIssues.filter((i) => st.sevFilter === 'all' || i.sev === st.sevFilter);
+    const issuesFiltered = filtered.map((i) => ({
+      title: i.title, detail: i.detail,
+      sideTag: i.side || 'LINK',
+      accent: this.sevColor(i.sev),
+      border: i.sev === 'error' ? '#3a2526' : i.sev === 'warn' ? '#3a3322' : '#242a2f',
+      click: () => {
+        if (i.side === 'MON') this.select('MON', i.ref);
+        else if (i.side === 'FOH') this.select('FOH', i.ref);
+        else if (i.monRef) { this.select('MON', i.monRef); }
+      },
+    }));
+    const chip = (key, label) => ({
+      label, click: () => this.setState({ sevFilter: key }),
+      color: st.sevFilter === key ? '#0d0f11' : '#9aa1a8',
+      bg: st.sevFilter === key ? (key === 'error' ? '#cf6a64' : key === 'warn' ? '#c69a52' : key === 'info' ? '#7d8a93' : '#aab1b8') : 'transparent',
+      border: st.sevFilter === key ? 'transparent' : '#2a3036',
+    });
+    const sevChips = [chip('all', 'all ' + allIssues.length), chip('error', 'errors ' + errCount), chip('warn', 'warnings ' + warnCount), chip('info', 'name ' + infoCount)];
+
+    // link check
+    const monOptions = st.monVM.filter((r) => r.named).map((r) => ({ value: String(r.idx), label: r.id + ' · ' + r.name }));
+    const fohOptions = st.fohVM.filter((r) => r.named).map((r) => ({ value: String(r.idx), label: r.id + ' · ' + r.name }));
+    let pickResult = false, prStatus = '', prMsg = '', prColor = '#7d8a93', prBorder = '#242a2f', prPath = [], prPathLabel = '';
+    const pm = st.pickMon ? st.monVM.find((r) => r.idx === +st.pickMon) : null;
+    const pf = st.pickFoh ? st.fohVM.find((r) => r.idx === +st.pickFoh) : null;
+    if (pm && pf) {
+      pickResult = true;
+      const same = pm.key === pf.key;
+      if (same) {
+        prStatus = 'Valid link'; prColor = '#6fb1bd'; prBorder = '#2c4d57';
+        const how = pm.key.startsWith('STAGE:')
+          ? 'The monitor takes it from the stage box on AES50-A and forwards it to FOH on AES50-B, where FOH picks it up on AES50-A.'
+          : pm.key.startsWith('MONLOCAL:')
+            ? 'It is plugged into the monitor’s local input and forwarded to FOH over the single AES50 cable (the monitor’s AN→B send block). A normal, valid path.'
+            : 'It is carried to FOH across the single AES50 cable.';
+        prMsg = 'Both desks resolve to the same physical input — ' + pm.originLabel + '. ' + how + ' Audio path verified.';
+        prPathLabel = 'HOW IT CONNECTS'; prPath = pf.steps.map((s) => ({ layer: s.layer, label: s.label, dot: this.layerDot(s.layer) }));
+      } else {
+        prStatus = 'Routing invalid'; prColor = '#cf6a64'; prBorder = '#4a2a2a';
+        prMsg = 'These are NOT the same signal. Monitor "' + pm.name + '" = ' + pm.originLabel + '; FOH "' + pf.name + '" = ' + pf.originLabel + '. They never meet across AES50 — patching or input-source assignment is wrong on one of the desks.';
+        prPathLabel = 'THE TWO DIVERGING SOURCES';
+        prPath = [
+          { layer: 'monitor', label: pm.name + '  →  ' + pm.originLabel, dot: '#9fc6d6' },
+          { layer: 'foh', label: pf.name + '  →  ' + pf.originLabel, dot: '#d6c19f' },
+        ];
+      }
+    }
+    const suggestions = a.nameMismatch.slice(0, 14).map((n) => ({
+      monName: 'M ' + n.monRef + ' ' + (st.monVM.find((r) => r.idx === n.monRef) || {}).name,
+      fohName: (st.fohVM.find((r) => r.idx === n.fohRef) || {}).name + ' F ' + n.fohRef,
+      port: n.key.replace('STAGE:', 'STG'),
+      accept: () => this.setState({ pickMon: String(n.monRef), pickFoh: String(n.fohRef), dock: 'links' }),
+    }));
+    const pinnedLinks = st.links.map((l, i) => ({
+      text: l.text, accent: l.color,
+      border: l.status === 'invalid' ? '#3a2526' : l.status === 'caution' ? '#3a3322' : '#2c4d57',
+      focus: () => this.select('MON', l.monIdx),
+      remove: () => this.setState({ links: st.links.filter((_, j) => j !== i) }),
+    }));
+    const addLink = () => {
+      if (!pm || !pf) return;
+      const same = pm.key === pf.key;
+      const status = same ? 'valid' : 'invalid';
+      const color = status === 'valid' ? '#6fb1bd' : '#cf6a64';
+      const text = pm.name + ' ⇄ ' + pf.name + '  ' + (status === 'valid' ? '✓' : status === 'invalid' ? '✕' : '!');
+      this.setState({ links: st.links.concat([{ monIdx: pm.idx, fohIdx: pf.idx, status, color, text }]) });
+    };
+
+    // detail
+    let detail = {};
+    if (sel) {
+      const vm = sel.side === 'MON' ? st.monVM : st.fohVM;
+      const row = vm.find((r) => r.idx === sel.idx);
+      if (row) {
+        const matchIdx = this.matchesOf(sel.side, sel.idx);
+        const otherVM = sel.side === 'MON' ? st.fohVM : st.monVM;
+        const otherSide = sel.side === 'MON' ? 'FOH' : 'MON';
+        const v = this.verdict(row.key);
+        const dMatches = matchIdx.map((mi) => {
+          const or = otherVM.find((r) => r.idx === mi);
+          return {
+            name: (or ? or.name : '?') + '  (Ch ' + (or ? or.id : '?') + ')',
+            accent: v.color, verdict: v.word,
+            border: v.status === 'valid' ? '#2c4d57' : v.status === 'caution' ? '#3a3322' : '#242a2f',
+            select: () => this.select(otherSide, mi),
+          };
+        });
+        const deadEnd = !matchIdx.length;
+        let deadMsg = '', deadTone = 'info';
+        if (deadEnd) {
+          if (row.kind === 'MonLocal') deadMsg = sel.side === 'FOH'
+            ? 'Receives ' + row.originLabel.toLowerCase() + ' over the AES50 cable (the monitor forwards its locals on the AN→B block). The monitor has no channel assigned to that local input, so it is only named here.'
+            : 'Local input on the monitor console, forwarded to FOH over AES50-B. No FOH channel is patched to it yet.';
+          else if (row.kind === 'FohLocal') deadMsg = 'Local XLR on the FOH console — independent of the stage box and the monitor desk.';
+          else if (row.kind === 'Stage') deadMsg = 'No channel on the ' + otherSide + ' desk is patched to ' + row.originLabel + '. The instrument is used on one desk only.';
+          else deadMsg = 'No matching channel on the ' + otherSide + ' desk for this source.';
+        }
+        detail = {
+          hasDetail: true, noDetail: false,
+          dSide: sel.side, dSideColor: sel.side === 'MON' ? '#9fc6d6' : '#d6c19f', dSideBorder: sel.side === 'MON' ? '#34506b' : '#5a4a34',
+          dColor: row.colorHex, dColor2: this.kindColor(row.kind),
+          dName: row.name, dId: row.id, dOrigin: row.originLabel,
+          dSteps: row.steps.map((s) => ({ layer: s.layer, label: s.label, detail: s.detail, dot: this.layerDot(s.layer) })),
+          dDests: (() => { const ds = []; if (row.lr) ds.push({ label: 'Main LR' }); for (let b = 0; b < row.busN; b++); return this.M.channelDestinations((sel.side === 'MON' ? st.mon : st.foh).channels.find((c) => c.idx === sel.idx)).map((d) => ({ label: d.label })); })(),
+          dNoDest: !row.lr && !row.busN,
+          dHasMatch: dMatches.length > 0, dMatches,
+          dMatchLabel: 'SAME SOURCE ON ' + otherSide + (v.status === 'valid' ? ' · VERIFIED' : v.status === 'caution' ? ' · CHECK' : ''),
+          dDeadEnd: deadEnd, dDeadEndMsg: deadMsg,
+        };
+      }
+    }
+    if (!sel) detail = { hasDetail: false, noDetail: true, dMatches: [], dSteps: [], dDests: [] };
+
+    return Object.assign(base, {
+      monRows, fohRows, connectors, connDots, svgW, svgH, svgViewBox: '0 0 ' + svgW + ' ' + svgH, centerX: this.COL_W + this.CENTER_W / 2,
+      errCount, warnCount,
+      issueTotal: allIssues.length, issuesFiltered, sevChips, noIssues: issuesFiltered.length === 0,
+      monOptions, fohOptions, pickMon: st.pickMon, pickFoh: st.pickFoh,
+      pickMonChange: (e) => this.setState({ pickMon: e.target.value }),
+      pickFohChange: (e) => this.setState({ pickFoh: e.target.value }),
+      pickResult, prStatus, prMsg, prColor, prBorder, prPath, prPathLabel, addLink,
+      suggestions, hasSuggest: suggestions.length > 0,
+      pinnedLinks, hasLinks: pinnedLinks.length > 0,
+    }, detail);
+  }
+}
+</script>
+</body>
+</html>
