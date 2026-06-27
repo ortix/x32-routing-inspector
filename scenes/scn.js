@@ -47,6 +47,27 @@ export function resolveGlobalOut(n) {
   return { kind: 'Sig', n, label: 'Sig ' + n, short: 'S' + n };
 }
 
+// Source feeding a USER OUTPUT (/config/userrout/out value, 0..208).
+// Per the X32/M32 OSC spec the input portion (1..160) is the SAME signal
+// enumeration as user inputs, so a user-output carrying value 33 taps AES50-A 1
+// — i.e. it forwards the stage box, exactly like a direct A1-8 send block. Values
+// 161..208 are console-generated outputs (aux/bus/P16/monitor), never a shared
+// physical input, so they get distinct kinds that won't false-match a stage origin.
+export function resolveUserOutSource(n) {
+  n = +n;
+  if (!n || n === 0) return { kind: 'OFF', n: 0, label: '—', short: '—' };
+  if (n <= 32) return { kind: 'Local', n, label: 'Local ' + n, short: 'L' + n };
+  if (n <= 80) return { kind: 'AES50A', n: n - 32, label: 'AES50-A ' + (n - 32), short: 'A' + (n - 32) };
+  if (n <= 128) return { kind: 'AES50B', n: n - 80, label: 'AES50-B ' + (n - 80), short: 'B' + (n - 80) };
+  if (n <= 160) return { kind: 'Card', n: n - 128, label: 'Card ' + (n - 128), short: 'C' + (n - 128) };
+  if (n <= 166) return { kind: 'AuxIn', n: n - 160, label: 'Aux In ' + (n - 160), short: 'AUX' + (n - 160) };
+  if (n <= 168) return { kind: 'TB', n: n - 166, label: 'Talkback ' + (n - 166), short: 'TB' + (n - 166) };
+  if (n <= 184) return { kind: 'OutTap', n: n - 168, label: 'Out ' + (n - 168), short: 'OUT' + (n - 168) };
+  if (n <= 200) return { kind: 'P16', n: n - 184, label: 'P16 ' + (n - 184), short: 'P16-' + (n - 184) };
+  if (n <= 206) return { kind: 'AuxOut', n: n - 200, label: 'AUX ' + (n - 200), short: 'AUXo' + (n - 200) };
+  return { kind: 'Monitor', n: n - 206, label: 'Monitor ' + (n === 207 ? 'L' : 'R'), short: 'MON' + (n === 207 ? 'L' : 'R') };
+}
+
 // Parse a routing token like 'AN1-8','A9-16','UIN17-24','OUT1-8','P161-8','AUX/TB'.
 function parseRouteToken(tok) {
   if (!tok) return null;
@@ -181,6 +202,15 @@ export function resolveAesSend(con, busAB, port) {
   const pt = parseRouteToken(tok);
   if (!pt || pt.special) return { kind: tok || 'OFF', label: tok || '—', short: tok || '—', tok };
   const idx = pt.start + offset;
+  // A USER OUTPUT block is an indirection: the actual signal it carries is set by
+  // the /config/userrout/out patch. Chase it (mirrors how resolveSlot follows
+  // userrout.in for UIN blocks) so a stage box forwarded via the user-out matrix
+  // resolves to its real origin instead of an opaque "UserOut N".
+  if (pt.prefix === 'UOUT') {
+    const g = con.userrout.out[idx - 1];
+    const r = resolveUserOutSource(g);
+    return Object.assign({ tok, via: 'UserOut ' + idx }, r);
+  }
   const kind = PREFIX_KIND[pt.prefix] || pt.prefix;
   const map = {
     MixBus: { label: 'Out ' + idx, short: 'OUT' + idx },
@@ -224,6 +254,8 @@ export function canonicalOrigin(role, con, link) {
         return { key: 'MONLOCAL:' + r.n, kind: 'MonLocal', port: r.n, label: 'Monitor local ' + r.n, short: 'mLOC' + r.n, slotRes: r };
       if (r.kind === 'AES50B')
         return { key: 'FROMFOH:' + r.n, kind: 'FromFOH', port: r.n, label: 'From FOH / playback (B' + r.n + ')', short: 'B' + r.n, slotRes: r };
+      if (r.kind === 'Card')
+        return { key: 'MONCARD:' + r.n, kind: 'MonCard', port: r.n, label: 'Monitor card ' + r.n, short: 'mC' + r.n, slotRes: r };
       return { key: r.kind + ':' + (r.n || 0), kind: r.kind, port: r.n, label: r.label, short: r.short, slotRes: r };
     }
     // FOH
