@@ -10,10 +10,18 @@
 <helmet>
 <style>
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:#0d0f11}
-  ::-webkit-scrollbar{width:10px;height:10px}
-  ::-webkit-scrollbar-thumb{background:#2a3036;border-radius:5px}
-  ::-webkit-scrollbar-thumb:hover{background:#3a424a}
+  :root{
+    --bg:#0d0f11; --surface:#101316; --surface-2:#15181b;
+    --row-sel:#1b2429; --row-match:#161e22; --row-hover:#1a2024;
+    --line:#1a1f24; --border:#242b31;
+    --text:#e7e9eb; --text-soft:#cdd2d6; --text-dim:#8b9299; --text-faint:#5c656d; --text-mute:#454d54;
+    --mon:#6fb1bd; --foh:#d6b483;
+    --error:#cf6a64; --warn:#c69a52; --info:#7d8a93;
+  }
+  html,body{margin:0;padding:0;background:var(--bg)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#262d33;border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#333b42}
   ::-webkit-scrollbar-track{background:transparent}
   @keyframes flowdash{to{stroke-dashoffset:-14}}
   @keyframes softpulse{0%,100%{opacity:.4}50%{opacity:.95}}
@@ -23,35 +31,16 @@
 <div style="display:flex;flex-direction:column;height:100vh;width:100%;background:#0d0f11;color:#e7e9eb;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:13px;overflow:hidden">
 
   <!-- ===================== HEADER ===================== -->
-  <div style="flex:none;display:flex;align-items:center;gap:18px;height:50px;padding:0 16px;border-bottom:1px solid #2a3036;background:#101316">
-    <div style="display:flex;align-items:center;gap:9px">
-      <div style="width:9px;height:9px;border-radius:2px;background:#6fb1bd"></div>
-      <div style="font-weight:650;letter-spacing:.3px">AES50 Routing Inspector</div>
-      <div style="font-size:10.5px;color:#646b72;font-family:ui-monospace,'SF Mono',Menlo,monospace;border:1px solid #2a3036;padding:1px 6px;border-radius:3px">X32 / M32 · .scn</div>
-    </div>
+  <div style="flex:none;display:flex;align-items:center;gap:14px;height:52px;padding:0 18px;border-bottom:1px solid var(--border);background:var(--surface)">
+    <div style="width:8px;height:8px;border-radius:2px;background:var(--mon)"></div>
+    <div style="font-weight:650;font-size:13.5px;letter-spacing:.2px">AES50 Routing Inspector</div>
     <div style="flex:1"></div>
-    <div style="position:relative">
-      <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search name · port · STG1 …" style="width:230px;height:30px;background:#15181b;border:1px solid #2a3036;border-radius:6px;color:#e7e9eb;padding:0 10px;font-size:12.5px;outline:none;font-family:ui-monospace,Menlo,monospace" style-focus="border-color:#6fb1bd"/>
+    <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="Search a channel or input…" style="width:240px;height:32px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:0 12px;font-size:12.5px;outline:none" style-focus="border-color:var(--mon)"/>
+    <div style="display:flex;gap:13px;align-items:center;font-size:11.5px;font-family:ui-monospace,Menlo,monospace">
+      <span style="color:var(--text-dim)"><span style="color:var(--mon);font-weight:600">{{ linkCount }}</span> linked</span>
+      <span style="color:var(--text-dim)"><span style="color:var(--error);font-weight:600">{{ errCount }}</span> errors</span>
+      <span style="color:var(--text-dim)"><span style="color:var(--warn);font-weight:600">{{ warnCount }}</span> warnings</span>
     </div>
-    <div style="display:flex;gap:14px;align-items:center;font-size:11px">
-      <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#cf6a64"></span><span style="color:#9aa1a8">{{ errCount }} errors</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#c69a52"></span><span style="color:#9aa1a8">{{ warnCount }} warnings</span></div>
-    </div>
-  </div>
-
-  <!-- ===================== TOPOLOGY RIBBON ===================== -->
-  <div style="flex:none;display:flex;align-items:center;gap:10px;height:38px;padding:0 16px;border-bottom:1px solid #1c2125;background:#0e1114;font-size:11px;color:#8b9299;font-family:ui-monospace,Menlo,monospace">
-    <span style="color:#646b72">SIGNAL TOPOLOGY</span>
-    <span style="color:#3a424a">│</span>
-    <span style="padding:2px 8px;border:1px solid #2a3036;border-radius:4px;background:#15181b">STAGE BOX</span>
-    <span style="color:#5c656d">──AES50&#8209;A in──▸</span>
-    <span style="padding:2px 8px;border:1px solid #34506b;border-radius:4px;background:#13202b;color:#9fc6d6">MONITOR&nbsp;<span style="color:#6a7178">(owns preamps)</span></span>
-    <span style="color:#5c656d">─B&nbsp;out→A&nbsp;in passthrough─▸</span>
-    <span style="padding:2px 5px;border:1px dashed #3a444c;border-radius:4px;color:#7d8a93">AES50 CABLE</span>
-    <span style="color:#5c656d">──▸</span>
-    <span style="padding:2px 8px;border:1px solid #5a4a34;border-radius:4px;background:#221b13;color:#d6c19f">FOH</span>
-    <div style="flex:1"></div>
-    <span style="color:#646b72">click a channel to trace · select an issue to jump</span>
   </div>
 
   <!-- ===================== MAIN ===================== -->
@@ -60,29 +49,29 @@
     <!-- BOARD (mirrored stacks + connectors) -->
     <div ref="{{ setBoardRef }}" style="flex:1;overflow:auto;min-width:0;background:#0d0f11;position:relative">
       <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#646b72;font-family:ui-monospace,Menlo,monospace;font-size:12px">parsing scenes &amp; resolving AES50 flow…</div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace;font-size:12px">Reading scenes…</div>
       </sc-if>
       <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#cf6a64;font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:20px;text-align:center">{{ error }}</div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--error);font-family:ui-monospace,Menlo,monospace;font-size:12px;padding:20px;text-align:center">{{ error }}</div>
       </sc-if>
 
       <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
       <div style="min-width:700px;padding:14px 24px 60px">
         <!-- column headers -->
-        <div style="display:flex;align-items:flex-end;margin-bottom:8px">
+        <div style="display:flex;align-items:flex-end;margin-bottom:10px">
           <div style="width:268px;display:flex;align-items:center;justify-content:space-between;padding-right:10px">
-            <div>
-              <div style="font-size:10px;letter-spacing:1px;color:#6a7178;font-weight:600">MONITOR · X32</div>
-              <div style="font-size:12px;color:#9fc6d6;font-family:ui-monospace,Menlo,monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ monName }}</div>
+            <div style="min-width:0">
+              <div style="font-size:9px;letter-spacing:1.5px;color:var(--text-faint);font-weight:600">MONITOR · X32</div>
+              <div style="font-size:12.5px;color:var(--mon);font-family:ui-monospace,Menlo,monospace;max-width:185px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ monName }}</div>
             </div>
-            <button onClick="{{ swapMon }}" style="font-size:10px;color:#8b9299;background:#15181b;border:1px solid #2a3036;border-radius:4px;padding:4px 8px;cursor:pointer;font-family:ui-monospace,Menlo,monospace" style-hover="border-color:#6fb1bd;color:#cfe3e9">Upload .scn</button>
+            <button onClick="{{ swapMon }}" style="font-size:11px;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:5px 11px;cursor:pointer" style-hover="border-color:var(--mon);color:var(--text)">Upload</button>
           </div>
-          <div style="width:116px;text-align:center;font-size:9.5px;letter-spacing:1px;color:#4a525a">AES50 LINK</div>
+          <div style="width:116px;text-align:center;font-size:9px;letter-spacing:1.5px;color:var(--text-mute)">LINK</div>
           <div style="width:268px;display:flex;align-items:center;justify-content:space-between;padding-left:10px">
-            <button onClick="{{ swapFoh }}" style="font-size:10px;color:#8b9299;background:#15181b;border:1px solid #2a3036;border-radius:4px;padding:4px 8px;cursor:pointer;font-family:ui-monospace,Menlo,monospace" style-hover="border-color:#c69a52;color:#e6d3ad">Upload .scn</button>
-            <div style="text-align:right">
-              <div style="font-size:10px;letter-spacing:1px;color:#6a7178;font-weight:600">FOH · M32</div>
-              <div style="font-size:12px;color:#d6c19f;font-family:ui-monospace,Menlo,monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fohName }}</div>
+            <button onClick="{{ swapFoh }}" style="font-size:11px;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:5px 11px;cursor:pointer" style-hover="border-color:var(--foh);color:var(--text)">Upload</button>
+            <div style="text-align:right;min-width:0">
+              <div style="font-size:9px;letter-spacing:1.5px;color:var(--text-faint);font-weight:600">FOH · M32</div>
+              <div style="font-size:12.5px;color:var(--foh);font-family:ui-monospace,Menlo,monospace;max-width:185px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fohName }}</div>
             </div>
           </div>
         </div>
@@ -103,13 +92,12 @@
             <!-- MONITOR COLUMN -->
             <div style="width:268px">
               <sc-for list="{{ monRows }}" as="r" hint-placeholder-count="20">
-                <div onClick="{{ r.select }}" style="height:34px;display:flex;align-items:center;gap:7px;padding:0 9px 0 7px;border-bottom:1px solid #16191c;cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:#1b2024">
-                  <span style="width:20px;text-align:right;font-size:10.5px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
-                  <span style="width:3px;height:18px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
+                <div onClick="{{ r.select }}" style="height:34px;display:flex;align-items:center;gap:9px;padding:0 10px 0 8px;border-bottom:1px solid var(--line);cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:var(--row-hover)">
+                  <span style="width:18px;text-align:right;font-size:10px;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
+                  <span style="width:3px;height:16px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
                   <span style="flex:1;font-size:12.5px;color:{{ r.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
-                  <span style="font-size:10px;color:#9aa1a8;font-family:ui-monospace,Menlo,monospace">{{ r.destText }}</span>
-                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:3px;padding:1px 5px;min-width:42px;text-align:center">{{ r.originShort }}</span>
-                  <span style="width:7px;height:7px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
+                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:4px;padding:1px 6px;min-width:44px;text-align:center">{{ r.originShort }}</span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
                 </div>
               </sc-for>
             </div>
@@ -118,13 +106,12 @@
             <!-- FOH COLUMN -->
             <div style="width:268px">
               <sc-for list="{{ fohRows }}" as="r" hint-placeholder-count="20">
-                <div onClick="{{ r.select }}" style="height:34px;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;padding:0 7px 0 9px;border-bottom:1px solid #16191c;cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:#1b2024">
-                  <span style="width:20px;text-align:left;font-size:10.5px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
-                  <span style="width:3px;height:18px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
+                <div onClick="{{ r.select }}" style="height:34px;display:flex;flex-direction:row-reverse;align-items:center;gap:9px;padding:0 8px 0 10px;border-bottom:1px solid var(--line);cursor:pointer;opacity:{{ r.dim }};background:{{ r.bg }}" style-hover="background:var(--row-hover)">
+                  <span style="width:18px;text-align:left;font-size:10px;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace">{{ r.id }}</span>
+                  <span style="width:3px;height:16px;border-radius:2px;background:{{ r.colorHex }};flex:none"></span>
                   <span style="flex:1;text-align:right;font-size:12.5px;color:{{ r.nameColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
-                  <span style="font-size:10px;color:#9aa1a8;font-family:ui-monospace,Menlo,monospace">{{ r.destText }}</span>
-                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:3px;padding:1px 5px;min-width:42px;text-align:center">{{ r.originShort }}</span>
-                  <span style="width:7px;height:7px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
+                  <span title="{{ r.originLabel }}" style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:{{ r.chipColor }};background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};border-radius:4px;padding:1px 6px;min-width:44px;text-align:center">{{ r.originShort }}</span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:{{ r.dot }};flex:none"></span>
                 </div>
               </sc-for>
             </div>
@@ -135,54 +122,54 @@
     </div>
 
     <!-- ===================== DOCK ===================== -->
-    <div style="flex:none;width:360px;border-left:1px solid #2a3036;background:#101316;display:flex;flex-direction:column;min-height:0">
+    <div style="flex:none;width:360px;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;min-height:0">
       <!-- tabs -->
-      <div style="flex:none;display:flex;height:40px;border-bottom:1px solid #2a3036">
-        <div onClick="{{ tabIssues }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabIssuesColor }};border-bottom:2px solid {{ tabIssuesBar }}">Issues <span style="font-size:10px;color:#646b72;font-family:ui-monospace,Menlo,monospace">{{ issueTotal }}</span></div>
-        <div onClick="{{ tabLinks }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabLinksColor }};border-bottom:2px solid {{ tabLinksBar }}">Link Check</div>
+      <div style="flex:none;display:flex;height:42px;border-bottom:1px solid var(--border)">
+        <div onClick="{{ tabIssues }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabIssuesColor }};border-bottom:2px solid {{ tabIssuesBar }}">Issues <span style="font-size:10px;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace">{{ issueTotal }}</span></div>
+        <div onClick="{{ tabLinks }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabLinksColor }};border-bottom:2px solid {{ tabLinksBar }}">Link check</div>
         <div onClick="{{ tabDetail }}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:12px;font-weight:550;color:{{ tabDetailColor }};border-bottom:2px solid {{ tabDetailBar }}">Channel</div>
       </div>
 
       <!-- ISSUES -->
       <sc-if value="{{ showIssues }}" hint-placeholder-val="{{ true }}">
-        <div style="flex:none;display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #1c2125;flex-wrap:wrap">
+        <div style="flex:none;display:flex;gap:6px;padding:11px 13px;border-bottom:1px solid var(--border);flex-wrap:wrap">
           <sc-for list="{{ sevChips }}" as="s" hint-placeholder-count="4">
-            <div onClick="{{ s.click }}" style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;cursor:pointer;padding:3px 9px;border-radius:4px;border:1px solid {{ s.border }};color:{{ s.color }};background:{{ s.bg }}">{{ s.label }}</div>
+            <div onClick="{{ s.click }}" style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;cursor:pointer;padding:3px 9px;border-radius:5px;border:1px solid {{ s.border }};color:{{ s.color }};background:{{ s.bg }}">{{ s.label }}</div>
           </sc-for>
         </div>
-        <div style="flex:1;overflow:auto;padding:8px 10px">
+        <div style="flex:1;overflow:auto;padding:10px 12px">
           <sc-for list="{{ issuesFiltered }}" as="i" hint-placeholder-count="6">
-            <div onClick="{{ i.click }}" style="border:1px solid {{ i.border }};border-left:3px solid {{ i.accent }};border-radius:6px;background:#13171a;padding:9px 11px;margin-bottom:7px;cursor:pointer" style-hover="background:#181d21">
-              <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
-                <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ i.accent }};border:1px solid {{ i.border }};border-radius:3px;padding:0 4px">{{ i.sideTag }}</span>
-                <span style="font-size:12px;font-weight:600;color:#dfe3e6;line-height:1.3">{{ i.title }}</span>
+            <div onClick="{{ i.click }}" style="border:1px solid var(--border);border-left:3px solid {{ i.accent }};border-radius:7px;background:var(--surface-2);padding:10px 12px;margin-bottom:8px;cursor:pointer" style-hover="background:#181d21">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+                <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ i.accent }};border:1px solid var(--border);border-radius:3px;padding:0 4px">{{ i.sideTag }}</span>
+                <span style="font-size:12px;font-weight:600;color:var(--text-soft);line-height:1.3">{{ i.title }}</span>
               </div>
-              <div style="font-size:11px;color:#828990;line-height:1.45">{{ i.detail }}</div>
+              <div style="font-size:11px;color:var(--text-dim);line-height:1.45">{{ i.detail }}</div>
             </div>
           </sc-for>
           <sc-if value="{{ noIssues }}" hint-placeholder-val="{{ false }}">
-            <div style="text-align:center;color:#5c656d;font-size:12px;padding:30px;font-family:ui-monospace,Menlo,monospace">no issues at this filter</div>
+            <div style="text-align:center;color:var(--text-faint);font-size:12px;padding:36px;font-family:ui-monospace,Menlo,monospace">Nothing to flag here.</div>
           </sc-if>
         </div>
       </sc-if>
 
       <!-- LINK CHECK -->
       <sc-if value="{{ showLinks }}" hint-placeholder-val="{{ false }}">
-        <div style="flex:1;overflow:auto;padding:12px">
-          <div style="font-size:11px;color:#828990;line-height:1.5;margin-bottom:12px">Names differ between desks all the time. Pick the channel each console <em style="color:#aab1b8;font-style:normal">thinks</em> is the same instrument — the inspector confirms whether they're actually the same physical input across AES50.</div>
+        <div style="flex:1;overflow:auto;padding:13px">
+          <div style="font-size:11.5px;color:var(--text-dim);line-height:1.5;margin-bottom:14px">Pick a channel on each console to confirm they're the same physical input across AES50 — even when the names don't match.</div>
 
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
             <div style="flex:1">
-              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:4px">MONITOR CH</div>
-              <select onChange="{{ pickMonChange }}" value="{{ pickMon }}" style="width:100%;height:32px;background:#15181b;border:1px solid #2a3036;border-radius:5px;color:#e7e9eb;font-size:12px;padding:0 6px;font-family:ui-monospace,Menlo,monospace;outline:none">
+              <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:5px">MONITOR</div>
+              <select onChange="{{ pickMonChange }}" value="{{ pickMon }}" style="width:100%;height:33px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:0 7px;font-family:ui-monospace,Menlo,monospace;outline:none">
                 <option value="">— select —</option>
                 <sc-for list="{{ monOptions }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
               </select>
             </div>
-            <div style="color:#4a525a;font-size:18px;padding-top:16px">⇄</div>
+            <div style="color:var(--text-mute);font-size:16px;padding-top:18px">⇄</div>
             <div style="flex:1">
-              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:4px;text-align:right">FOH CH</div>
-              <select onChange="{{ pickFohChange }}" value="{{ pickFoh }}" style="width:100%;height:32px;background:#15181b;border:1px solid #2a3036;border-radius:5px;color:#e7e9eb;font-size:12px;padding:0 6px;font-family:ui-monospace,Menlo,monospace;outline:none">
+              <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:5px;text-align:right">FOH</div>
+              <select onChange="{{ pickFohChange }}" value="{{ pickFoh }}" style="width:100%;height:33px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:0 7px;font-family:ui-monospace,Menlo,monospace;outline:none">
                 <option value="">— select —</option>
                 <sc-for list="{{ fohOptions }}" as="o" hint-placeholder-count="0"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
               </select>
@@ -190,43 +177,43 @@
           </div>
 
           <sc-if value="{{ pickResult }}" hint-placeholder-val="{{ false }}">
-            <div style="border:1px solid {{ prBorder }};border-radius:7px;background:#13171a;padding:12px;margin-bottom:14px">
+            <div style="border:1px solid {{ prBorder }};border-radius:8px;background:var(--surface-2);padding:13px;margin-bottom:16px">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                <span style="width:10px;height:10px;border-radius:50%;background:{{ prColor }}"></span>
+                <span style="width:9px;height:9px;border-radius:50%;background:{{ prColor }}"></span>
                 <span style="font-size:13px;font-weight:650;color:{{ prColor }}">{{ prStatus }}</span>
               </div>
-              <div style="font-size:11.5px;color:#aab1b8;line-height:1.5;margin-bottom:10px">{{ prMsg }}</div>
-              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:6px">{{ prPathLabel }}</div>
+              <div style="font-size:11.5px;color:var(--text-soft);line-height:1.5;margin-bottom:11px">{{ prMsg }}</div>
+              <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:7px">{{ prPathLabel }}</div>
               <sc-for list="{{ prPath }}" as="p" hint-placeholder-count="0">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-                  <span style="width:54px;font-size:8.5px;letter-spacing:.5px;color:#5c656d;text-align:right;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ p.layer }}</span>
-                  <span style="width:7px;height:7px;border-radius:50%;background:{{ p.dot }};flex:none"></span>
-                  <span style="font-size:11.5px;color:#cdd2d6;font-family:ui-monospace,Menlo,monospace">{{ p.label }}</span>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                  <span style="width:54px;font-size:9px;letter-spacing:.5px;color:var(--text-faint);text-align:right;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ p.layer }}</span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:{{ p.dot }};flex:none"></span>
+                  <span style="font-size:11.5px;color:var(--text-soft);font-family:ui-monospace,Menlo,monospace">{{ p.label }}</span>
                 </div>
               </sc-for>
-              <button onClick="{{ addLink }}" style="margin-top:11px;width:100%;height:30px;background:#1a2228;border:1px solid #34506b;border-radius:5px;color:#9fc6d6;font-size:12px;cursor:pointer;font-weight:550" style-hover="background:#1f2b33">＋ Pin this link</button>
+              <button onClick="{{ addLink }}" style="margin-top:12px;width:100%;height:31px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--mon);font-size:12px;cursor:pointer;font-weight:550" style-hover="border-color:var(--mon)">Pin this link</button>
             </div>
           </sc-if>
 
           <sc-if value="{{ hasSuggest }}" hint-placeholder-val="{{ false }}">
-            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin:4px 0 7px">SUGGESTED LINKS · same input, different name</div>
+            <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin:4px 0 8px">SUGGESTED · SAME INPUT, DIFFERENT NAME</div>
             <sc-for list="{{ suggestions }}" as="s" hint-placeholder-count="0">
-              <div style="display:flex;align-items:center;gap:8px;border:1px solid #1f2429;border-radius:6px;background:#121619;padding:7px 9px;margin-bottom:6px">
-                <span style="flex:1;font-size:11px;color:#9fc6d6;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.monName }}</span>
-                <span style="font-size:9px;color:#5c656d;font-family:ui-monospace,Menlo,monospace">{{ s.port }}</span>
-                <span style="flex:1;font-size:11px;color:#d6c19f;text-align:right;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.fohName }}</span>
-                <button onClick="{{ s.accept }}" style="font-size:10px;color:#8b9299;background:#181c20;border:1px solid #2a3036;border-radius:4px;padding:3px 7px;cursor:pointer" style-hover="border-color:#6fb1bd;color:#cfe3e9">link</button>
+              <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);padding:7px 10px;margin-bottom:6px">
+                <span style="flex:1;font-size:11px;color:var(--mon);font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.monName }}</span>
+                <span style="font-size:9px;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace">{{ s.port }}</span>
+                <span style="flex:1;font-size:11px;color:var(--foh);text-align:right;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.fohName }}</span>
+                <button onClick="{{ s.accept }}" style="font-size:10px;color:var(--text-dim);background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:3px 8px;cursor:pointer" style-hover="border-color:var(--mon);color:var(--text)">link</button>
               </div>
             </sc-for>
           </sc-if>
 
           <sc-if value="{{ hasLinks }}" hint-placeholder-val="{{ false }}">
-            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin:14px 0 7px">PINNED LINKS</div>
+            <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin:16px 0 8px">PINNED</div>
             <sc-for list="{{ pinnedLinks }}" as="l" hint-placeholder-count="0">
-              <div onClick="{{ l.focus }}" style="display:flex;align-items:center;gap:8px;border:1px solid {{ l.border }};border-left:3px solid {{ l.accent }};border-radius:6px;background:#121619;padding:7px 9px;margin-bottom:6px;cursor:pointer">
-                <span style="width:7px;height:7px;border-radius:50%;background:{{ l.accent }};flex:none"></span>
-                <span style="flex:1;font-size:11px;color:#cdd2d6;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.text }}</span>
-                <button onClick="{{ l.remove }}" style="font-size:13px;color:#646b72;background:none;border:none;cursor:pointer;line-height:1" style-hover="color:#cf6a64">×</button>
+              <div onClick="{{ l.focus }}" style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-left:3px solid {{ l.accent }};border-radius:7px;background:var(--surface-2);padding:7px 10px;margin-bottom:6px;cursor:pointer">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ l.accent }};flex:none"></span>
+                <span style="flex:1;font-size:11px;color:var(--text-soft);font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.text }}</span>
+                <button onClick="{{ l.remove }}" style="font-size:14px;color:var(--text-faint);background:none;border:none;cursor:pointer;line-height:1" style-hover="color:var(--error)">×</button>
               </div>
             </sc-for>
           </sc-if>
@@ -235,58 +222,58 @@
 
       <!-- CHANNEL DETAIL -->
       <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
-        <div style="flex:1;overflow:auto;padding:14px">
+        <div style="flex:1;overflow:auto;padding:15px">
           <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
-            <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px">
-              <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ dSideColor }};border:1px solid {{ dSideBorder }};border-radius:3px;padding:1px 5px">{{ dSide }}</span>
-              <span style="width:4px;height:18px;border-radius:2px;background:{{ dColor }}"></span>
-              <span style="font-size:16px;font-weight:650">{{ dName }}</span>
-              <span style="font-size:11px;color:#646b72;font-family:ui-monospace,Menlo,monospace">Ch {{ dId }}</span>
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:5px">
+              <span style="font-size:9px;font-family:ui-monospace,Menlo,monospace;letter-spacing:.5px;color:{{ dSideColor }};border:1px solid var(--border);border-radius:3px;padding:1px 5px">{{ dSide }}</span>
+              <span style="width:4px;height:17px;border-radius:2px;background:{{ dColor }}"></span>
+              <span style="font-size:15px;font-weight:650">{{ dName }}</span>
+              <span style="font-size:11px;color:var(--text-faint);font-family:ui-monospace,Menlo,monospace">Ch {{ dId }}</span>
             </div>
-            <div style="font-size:11px;color:#828990;margin-bottom:16px;font-family:ui-monospace,Menlo,monospace">resolves to <span style="color:{{ dColor2 }}">{{ dOrigin }}</span></div>
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:18px;font-family:ui-monospace,Menlo,monospace">resolves to <span style="color:{{ dColor2 }}">{{ dOrigin }}</span></div>
 
-            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:9px">SIGNAL PATH</div>
-            <div style="position:relative;margin-bottom:18px">
+            <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:10px">SIGNAL PATH</div>
+            <div style="position:relative;margin-bottom:20px">
               <sc-for list="{{ dSteps }}" as="s" hint-placeholder-count="4">
                 <div style="display:flex;gap:11px;align-items:flex-start;padding-bottom:13px;position:relative">
                   <div style="width:11px;display:flex;flex-direction:column;align-items:center;flex:none">
-                    <span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:2px solid #101316;z-index:2"></span>
-                    <span style="width:1px;flex:1;background:#262c31;margin-top:1px;min-height:14px"></span>
+                    <span style="width:9px;height:9px;border-radius:50%;background:{{ s.dot }};border:2px solid var(--surface);z-index:2"></span>
+                    <span style="width:1px;flex:1;background:var(--border);margin-top:1px;min-height:14px"></span>
                   </div>
                   <div style="flex:1;margin-top:-2px">
-                    <div style="font-size:8.5px;letter-spacing:.6px;color:#5c656d;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ s.layer }}</div>
-                    <div style="font-size:12.5px;color:#dfe3e6;font-family:ui-monospace,Menlo,monospace">{{ s.label }}</div>
-                    <div style="font-size:10.5px;color:#727980;line-height:1.4;margin-top:1px">{{ s.detail }}</div>
+                    <div style="font-size:9px;letter-spacing:.6px;color:var(--text-faint);text-transform:uppercase;font-family:ui-monospace,Menlo,monospace">{{ s.layer }}</div>
+                    <div style="font-size:12.5px;color:var(--text-soft);font-family:ui-monospace,Menlo,monospace">{{ s.label }}</div>
+                    <div style="font-size:10.5px;color:var(--text-dim);line-height:1.4;margin-top:1px">{{ s.detail }}</div>
                   </div>
                 </div>
               </sc-for>
             </div>
 
-            <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">SENDS TO</div>
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px">
+            <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px">SENDS TO</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:20px">
               <sc-for list="{{ dDests }}" as="x" hint-placeholder-count="3">
-                <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#aab1b8;border:1px solid #2a3036;border-radius:4px;padding:2px 7px;background:#15181b">{{ x.label }}</span>
+                <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--text-soft);border:1px solid var(--border);border-radius:5px;padding:2px 8px;background:var(--surface-2)">{{ x.label }}</span>
               </sc-for>
-              <sc-if value="{{ dNoDest }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#cf6a64;font-family:ui-monospace,Menlo,monospace">unassigned — goes nowhere</span></sc-if>
+              <sc-if value="{{ dNoDest }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:var(--error);font-family:ui-monospace,Menlo,monospace">Unassigned — goes nowhere</span></sc-if>
             </div>
 
             <sc-if value="{{ dHasMatch }}" hint-placeholder-val="{{ false }}">
-              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">{{ dMatchLabel }}</div>
+              <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px">{{ dMatchLabel }}</div>
               <sc-for list="{{ dMatches }}" as="m" hint-placeholder-count="0">
-                <div onClick="{{ m.select }}" style="display:flex;align-items:center;gap:8px;border:1px solid {{ m.border }};border-radius:6px;background:#121619;padding:8px 10px;margin-bottom:6px;cursor:pointer" style-hover="background:#181d21">
-                  <span style="width:7px;height:7px;border-radius:50%;background:{{ m.accent }}"></span>
-                  <span style="flex:1;font-size:12px;color:#cdd2d6">{{ m.name }}</span>
+                <div onClick="{{ m.select }}" style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);padding:8px 11px;margin-bottom:6px;cursor:pointer" style-hover="background:#181d21">
+                  <span style="width:6px;height:6px;border-radius:50%;background:{{ m.accent }}"></span>
+                  <span style="flex:1;font-size:12px;color:var(--text-soft)">{{ m.name }}</span>
                   <span style="font-size:10px;color:{{ m.accent }};font-family:ui-monospace,Menlo,monospace">{{ m.verdict }}</span>
                 </div>
               </sc-for>
             </sc-if>
             <sc-if value="{{ dDeadEnd }}" hint-placeholder-val="{{ false }}">
-              <div style="font-size:9.5px;letter-spacing:.5px;color:#6a7178;margin-bottom:8px">CROSS-DESK</div>
-              <div style="border:1px solid #2a3036;border-left:3px solid #7d8a93;border-radius:6px;background:#13171a;padding:10px 12px;font-size:11.5px;color:#9aa1a8;line-height:1.5">{{ dDeadEndMsg }}</div>
+              <div style="font-size:9px;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px">CROSS-DESK</div>
+              <div style="border:1px solid var(--border);border-left:3px solid var(--info);border-radius:7px;background:var(--surface-2);padding:10px 12px;font-size:11.5px;color:var(--text-dim);line-height:1.5">{{ dDeadEndMsg }}</div>
             </sc-if>
           </sc-if>
           <sc-if value="{{ noDetail }}" hint-placeholder-val="{{ true }}">
-            <div style="text-align:center;color:#5c656d;font-size:12px;padding:40px 20px;font-family:ui-monospace,Menlo,monospace;line-height:1.6">select a channel<br/>to trace its path</div>
+            <div style="text-align:center;color:var(--text-faint);font-size:12px;padding:44px 20px;font-family:ui-monospace,Menlo,monospace;line-height:1.6">Select a channel to trace its path.</div>
           </sc-if>
         </div>
       </sc-if>
@@ -429,7 +416,7 @@ class Component extends DCLogic {
       tabLinksColor: st.dock === 'links' ? '#e7e9eb' : '#6a7178', tabLinksBar: st.dock === 'links' ? '#6fb1bd' : 'transparent',
       tabDetailColor: st.dock === 'detail' ? '#e7e9eb' : '#6a7178', tabDetailBar: st.dock === 'detail' ? '#6fb1bd' : 'transparent',
     };
-    if (!st.ready) return Object.assign(base, { monRows: [], fohRows: [], connectors: [], connDots: [], issuesFiltered: [], sevChips: [], issueTotal: 0, errCount: 0, warnCount: 0, monOptions: [], fohOptions: [] });
+    if (!st.ready) return Object.assign(base, { monRows: [], fohRows: [], connectors: [], connDots: [], issuesFiltered: [], sevChips: [], issueTotal: 0, errCount: 0, warnCount: 0, linkCount: 0, monOptions: [], fohOptions: [] });
 
     const a = st.analysis;
     const q = st.search.trim().toLowerCase();
@@ -506,6 +493,14 @@ class Component extends DCLogic {
     const errCount = a.issues.filter((i) => i.sev === 'error').length;
     const warnCount = a.issues.filter((i) => i.sev === 'warn').length;
     const infoCount = a.nameMismatch.length;
+    // channels confirmed as the same physical input on both desks
+    const named = (arr) => arr.some((x) => x.ch.name && x.ch.name.trim());
+    let linkCount = 0;
+    for (const [key, ml] of a.monByKey) {
+      if (!(key.startsWith('STAGE:') || key.startsWith('MONLOCAL:') || key.startsWith('MONCARD:'))) continue;
+      const fl = a.fohByKey.get(key);
+      if (fl && named(ml) && named(fl)) linkCount++;
+    }
     const allIssues = a.issues.concat(a.nameMismatch.map((n) => ({ ...n, side: '', sev: 'info' })));
     const filtered = allIssues.filter((i) => st.sevFilter === 'all' || i.sev === st.sevFilter);
     const issuesFiltered = filtered.map((i) => ({
@@ -623,7 +618,7 @@ class Component extends DCLogic {
 
     return Object.assign(base, {
       monRows, fohRows, connectors, connDots, svgW, svgH, svgViewBox: '0 0 ' + svgW + ' ' + svgH, centerX: this.COL_W + this.CENTER_W / 2,
-      errCount, warnCount,
+      errCount, warnCount, linkCount,
       issueTotal: allIssues.length, issuesFiltered, sevChips, noIssues: issuesFiltered.length === 0,
       monOptions, fohOptions, pickMon: st.pickMon, pickFoh: st.pickFoh,
       pickMonChange: (e) => this.setState({ pickMon: e.target.value }),
